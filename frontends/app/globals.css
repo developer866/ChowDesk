@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary:   #E89951;
+  --color-secondary: #ECB65F;
+  --color-tertiary:  #F0E76F;
+  --color-neutral:   #8D756E;
+
+  --font-headline: "Montserrat", sans-serif;
+  --font-body:     "Inter", sans-serif;
+
+  --animate-slideDown: slideDown 0.2s ease;
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
