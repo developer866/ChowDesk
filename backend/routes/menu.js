@@ -6,7 +6,7 @@ import {
   createMenuItem,
   updateMenuItem,
   deleteMenuItem,
-} from "../controllers/menuController.js";
+} from "../controllers/menucontroller.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
