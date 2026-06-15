@@ -1,7 +1,8 @@
-const MenuItem = require("../models/MenuItem");
+import MenuItem from "../models/MenuItem.js";
 
-
-exports.getAllMenuItems = async (req, res) => {
+// ── GET /api/menu ────────────────────────────────────────
+// Public — only returns AVAILABLE items. Supports ?category= filter.
+export const getAllMenuItems = async (req, res) => {
   try {
     const { category } = req.query;
 
@@ -17,8 +18,20 @@ exports.getAllMenuItems = async (req, res) => {
   }
 };
 
+// ── GET /api/menu/admin/all ───────────────────────────────
+// Admin only — returns ALL items, including unavailable ones,
+// so the admin can toggle availability back on.
+export const getAllMenuItemsAdmin = async (req, res) => {
+  try {
+    const items = await MenuItem.find().sort({ createdAt: -1 });
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch menu items", error: err.message });
+  }
+};
 
-exports.getMenuItemById = async (req, res) => {
+// ── GET /api/menu/:id ────────────────────────────────────
+export const getMenuItemById = async (req, res) => {
   try {
     const item = await MenuItem.findById(req.params.id);
 
@@ -32,8 +45,9 @@ exports.getMenuItemById = async (req, res) => {
   }
 };
 
-
-exports.createMenuItem = async (req, res) => {
+// ── POST /api/menu ─────────────────────────────────────────
+// Admin only
+export const createMenuItem = async (req, res) => {
   try {
     const { name, category, price, description, imageUrl, isAvailable } = req.body;
 
@@ -56,8 +70,9 @@ exports.createMenuItem = async (req, res) => {
   }
 };
 
-
-exports.updateMenuItem = async (req, res) => {
+// ── PATCH /api/menu/:id ────────────────────────────────────
+// Admin only
+export const updateMenuItem = async (req, res) => {
   try {
     const item = await MenuItem.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -74,7 +89,9 @@ exports.updateMenuItem = async (req, res) => {
   }
 };
 
-exports.deleteMenuItem = async (req, res) => {
+// ── DELETE /api/menu/:id ───────────────────────────────────
+// Admin only
+export const deleteMenuItem = async (req, res) => {
   try {
     const item = await MenuItem.findByIdAndDelete(req.params.id);
 

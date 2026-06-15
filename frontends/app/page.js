@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 // import Hero from "../components/Hero";
 import Hero from "./components/Hero";
@@ -21,6 +21,7 @@ const featuredIds = ["4", "6", "9", "11"];
 const featuredItems = menuItems.filter((item) =>
   featuredIds.includes(item._id),
 );
+
 
 const categoryCards = [
   {
