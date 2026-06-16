@@ -6,6 +6,7 @@ import { requestLogger } from "./middleware/logger.js";
 import menuRoutes from "./routes/menu.js";
 import orderRoutes from "./routes/orders.js";
 import authRoutes from "./routes/auth.js";   // ← new
+import cloudinaryRoutes from "./routes/image.js"; // ← new
 
 dotenv.config();
 
@@ -23,7 +24,8 @@ app.get("/", (req, res) => {
 
 app.use("/api/menu", menuRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/api/auth", authRoutes);   // ← new
+app.use("/api/auth", authRoutes);   
+app.use("/api/image", cloudinaryRoutes); 
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
