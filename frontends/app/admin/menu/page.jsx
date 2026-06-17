@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAdminAuth } from "../../context/AdminAuthContext";
 import {
-  getAllMenuItemsAdmin, createMenuItem, updateMenuItem, deleteMenuItem,
+  getAllMenuItemsAdmin, createMenuItem, updateMenuItem,
+  deleteMenuItem, uploadImage,
 } from "../../lib/adminApi";
 import {
-  Loader2, Plus, Pencil, Trash2, X, Eye, EyeOff, ImageOff,
+  Loader2, Plus, Pencil, Trash2, X, Eye, EyeOff, ImageOff, Upload,
 } from "lucide-react";
 
 const categories = ["Starters", "Mains", "Drinks", "Desserts"];
@@ -22,17 +23,21 @@ const emptyForm = {
 
 export default function AdminMenuPage() {
   const { token } = useAdminAuth();
+  const fileInputRef = useRef(null);
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Form state — null = closed, "new" = adding, or the item being edited
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+
+  // Image upload state
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const formatPrice = (amount) =>
     new Intl.NumberFormat("en-NG", {
@@ -41,26 +46,22 @@ export default function AdminMenuPage() {
       minimumFractionDigits: 0,
     }).format(amount);
 
-  // ── FETCH ITEMS ────────────────────────────────────────
-  const loadItems = () => {
+  // ── FETCH ──────────────────────────────────────────────
+  useEffect(() => {
     if (!token) return;
     setLoading(true);
-    setError(null);
-
     getAllMenuItemsAdmin(token)
       .then(setItems)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    loadItems();
   }, [token]);
 
   // ── FORM HANDLERS ──────────────────────────────────────
   const openAddForm = () => {
     setForm(emptyForm);
     setFormError(null);
+    setImageFile(null);
+    setImagePreview(null);
     setEditingItem("new");
   };
 
@@ -74,6 +75,8 @@ export default function AdminMenuPage() {
       isAvailable: item.isAvailable,
     });
     setFormError(null);
+    setImageFile(null);
+    setImagePreview(item.imageUrl || null);
     setEditingItem(item);
   };
 
@@ -81,6 +84,8 @@ export default function AdminMenuPage() {
     setEditingItem(null);
     setForm(emptyForm);
     setFormError(null);
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   const handleChange = (e) => {
@@ -91,7 +96,15 @@ export default function AdminMenuPage() {
     }));
   };
 
-  // ── SUBMIT (CREATE or UPDATE) ───────────────────────────
+  // ── IMAGE PICK ─────────────────────────────────────────
+  const handleImagePick = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  // ── SUBMIT ─────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError(null);
@@ -101,23 +114,28 @@ export default function AdminMenuPage() {
       return;
     }
 
-    if (Number(form.price) < 0) {
-      setFormError("Price must be a positive number.");
-      return;
-    }
-
     setSubmitting(true);
 
-    const payload = {
-      name: form.name.trim(),
-      category: form.category,
-      price: Number(form.price),
-      description: form.description.trim(),
-      imageUrl: form.imageUrl.trim(),
-      isAvailable: form.isAvailable,
-    };
-
     try {
+      let imageUrl = form.imageUrl;
+
+      // If user picked a new image — upload it first
+      if (imageFile) {
+        setUploading(true);
+        const result = await uploadImage(imageFile, token);
+        imageUrl = result.url;
+        setUploading(false);
+      }
+
+      const payload = {
+        name: form.name.trim(),
+        category: form.category,
+        price: Number(form.price),
+        description: form.description.trim(),
+        imageUrl,
+        isAvailable: form.isAvailable,
+      };
+
       if (editingItem === "new") {
         const created = await createMenuItem(payload, token);
         setItems((prev) => [created, ...prev]);
@@ -129,16 +147,16 @@ export default function AdminMenuPage() {
       }
       closeForm();
     } catch (err) {
+      setUploading(false);
       setFormError(err.message || "Something went wrong.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ── DELETE ──────────────────────────────────────────────
+  // ── DELETE ─────────────────────────────────────────────
   const handleDelete = async (item) => {
     if (!confirm(`Delete "${item.name}"? This can't be undone.`)) return;
-
     setDeletingId(item._id);
     try {
       await deleteMenuItem(item._id, token);
@@ -150,7 +168,7 @@ export default function AdminMenuPage() {
     }
   };
 
-  // ── TOGGLE AVAILABILITY (quick action) ─────────────────
+  // ── TOGGLE AVAILABILITY ────────────────────────────────
   const toggleAvailability = async (item) => {
     try {
       const updated = await updateMenuItem(item._id, { isAvailable: !item.isAvailable }, token);
@@ -175,7 +193,6 @@ export default function AdminMenuPage() {
             Add, edit, or remove items from your menu.
           </p>
         </div>
-
         <button
           onClick={openAddForm}
           className="inline-flex items-center gap-2 bg-(--color-primary) hover:bg-(--color-secondary) text-white font-semibold text-sm px-5 py-2.5 rounded-full transition-colors duration-200 font-(family-name:--font-body)"
@@ -184,7 +201,7 @@ export default function AdminMenuPage() {
         </button>
       </div>
 
-      {/* ── ADD/EDIT FORM ─────────────────────────────────── */}
+      {/* ── FORM ────────────────────────────────────────── */}
       {editingItem && (
         <div className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-sm mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -203,6 +220,49 @@ export default function AdminMenuPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+            {/* Image upload */}
+            <div>
+              <label className="block font-(family-name:--font-body) text-sm font-medium text-gray-700 mb-1.5">
+                Item Image
+              </label>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="relative w-full h-40 rounded-xl border-2 border-dashed border-gray-200 hover:border-(--color-primary) transition-colors cursor-pointer overflow-hidden bg-gray-50 flex flex-col items-center justify-center gap-2"
+              >
+                {imagePreview ? (
+                  <>
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                      <p className="font-(family-name:--font-body) text-white text-sm font-medium">
+                        Click to change
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-7 h-7 text-gray-300" />
+                    <p className="font-(family-name:--font-body) text-sm text-gray-400">
+                      Click to upload image
+                    </p>
+                    <p className="font-(family-name:--font-body) text-xs text-gray-300">
+                      JPG, PNG, WebP · max 5MB
+                    </p>
+                  </>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleImagePick}
+              />
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Name */}
@@ -252,21 +312,6 @@ export default function AdminMenuPage() {
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 font-(family-name:--font-body) text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary)/30"
                 />
               </div>
-
-              {/* Image URL */}
-              <div>
-                <label className="block font-(family-name:--font-body) text-sm font-medium text-gray-700 mb-1.5">
-                  Image URL
-                </label>
-                <input
-                  type="text"
-                  name="imageUrl"
-                  value={form.imageUrl}
-                  onChange={handleChange}
-                  placeholder="https://..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 font-(family-name:--font-body) text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary)/30"
-                />
-              </div>
             </div>
 
             {/* Description */}
@@ -291,7 +336,7 @@ export default function AdminMenuPage() {
                 name="isAvailable"
                 checked={form.isAvailable}
                 onChange={handleChange}
-                className="w-4 h-4 rounded accent-(--color-primary)"
+                className="w-4 h-4 rounded"
               />
               <span className="font-(family-name:--font-body) text-sm text-gray-700">
                 Available for ordering
@@ -303,16 +348,12 @@ export default function AdminMenuPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center justify-center gap-2 bg-(--color-primary) hover:bg-(--color-secondary) disabled:opacity-60 text-white font-semibold text-sm px-6 py-2.5 rounded-full transition-colors duration-200 font-(family-name:--font-body)"
+                className="flex items-center justify-center gap-2 bg-(--color-primary) hover:bg-(--color-secondary) disabled:opacity-60 text-white font-semibold text-sm px-6 py-2.5 rounded-full transition-colors font-(family-name:--font-body)"
               >
-                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                {submitting ? "Saving..." : editingItem === "new" ? "Add Item" : "Save Changes"}
+                {(submitting || uploading) && <Loader2 className="w-4 h-4 animate-spin" />}
+                {uploading ? "Uploading image..." : submitting ? "Saving..." : editingItem === "new" ? "Add Item" : "Save Changes"}
               </button>
-              <button
-                type="button"
-                onClick={closeForm}
-                className="text-sm font-medium text-gray-500 hover:text-gray-700 font-(family-name:--font-body)"
-              >
+              <button type="button" onClick={closeForm} className="text-sm font-medium text-gray-500 hover:text-gray-700 font-(family-name:--font-body)">
                 Cancel
               </button>
             </div>
@@ -320,40 +361,33 @@ export default function AdminMenuPage() {
         </div>
       )}
 
-      {/* Loading */}
+      {/* Loading / Error */}
       {loading && (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+        <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin mb-3 text-(--color-primary)" />
-          <p className="font-(family-name:--font-body) text-sm">Loading menu...</p>
+          <p className="font-(family-name:--font-body) text-sm text-gray-400">Loading menu...</p>
         </div>
       )}
-
-      {/* Error */}
       {!loading && error && (
-        <div className="text-center py-20">
-          <p className="font-(family-name:--font-body) text-red-500 text-sm">
-            Couldn't load menu items. {error}
-          </p>
-        </div>
+        <p className="text-center py-20 font-(family-name:--font-body) text-red-500 text-sm">
+          Couldn't load menu items. {error}
+        </p>
       )}
 
       {/* Items grid */}
       {!loading && !error && (
         items.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="font-(family-name:--font-body) text-gray-400 text-sm">
-              No menu items yet. Click "Add Item" to create your first one.
-            </p>
-          </div>
+          <p className="text-center py-20 font-(family-name:--font-body) text-gray-400 text-sm">
+            No menu items yet. Click "Add Item" to create your first one.
+          </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {items.map((item) => (
               <div
                 key={item._id}
-                className={`bg-white border rounded-2xl shadow-sm overflow-hidden transition-opacity
+                className={`bg-white border rounded-2xl shadow-sm overflow-hidden
                   ${item.isAvailable ? "border-gray-100" : "border-gray-100 opacity-60"}`}
               >
-                {/* Image */}
                 <div className="relative w-full h-32 bg-gray-100">
                   {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
@@ -362,7 +396,7 @@ export default function AdminMenuPage() {
                       <ImageOff className="w-8 h-8" />
                     </div>
                   )}
-                  <span className="absolute top-2 left-2 bg-white/90 backdrop-blur text-xs font-semibold text-(--color-neutral) px-2 py-0.5 rounded-full font-(family-name:--font-body)">
+                  <span className="absolute top-2 left-2 bg-white/90 text-xs font-semibold text-(--color-neutral) px-2 py-0.5 rounded-full font-(family-name:--font-body)">
                     {item.category}
                   </span>
                   {!item.isAvailable && (
@@ -372,7 +406,6 @@ export default function AdminMenuPage() {
                   )}
                 </div>
 
-                {/* Content */}
                 <div className="p-4">
                   <h3 className="font-(family-name:--font-headline) text-sm font-bold text-gray-900 truncate mb-0.5">
                     {item.name}
@@ -388,24 +421,19 @@ export default function AdminMenuPage() {
                     >
                       <Pencil className="w-3.5 h-3.5" /> Edit
                     </button>
-
                     <button
                       onClick={() => toggleAvailability(item)}
-                      className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 text-gray-500 hover:border-(--color-primary) hover:text-(--color-primary) transition-colors"
+                      className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-(--color-primary) hover:text-(--color-primary) transition-colors"
                       title={item.isAvailable ? "Hide from menu" : "Show on menu"}
                     >
                       {item.isAvailable ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </button>
-
                     <button
                       onClick={() => handleDelete(item)}
                       disabled={deletingId === item._id}
-                      className="flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-500 transition-colors disabled:opacity-50"
+                      className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-500 transition-colors disabled:opacity-50"
                     >
-                      {deletingId === item._id
-                        ? <Loader2 className="w-4 h-4 animate-spin" />
-                        : <Trash2 className="w-4 h-4" />
-                      }
+                      {deletingId === item._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
@@ -414,7 +442,6 @@ export default function AdminMenuPage() {
           </div>
         )
       )}
-
     </main>
   );
 }

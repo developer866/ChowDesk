@@ -2,7 +2,7 @@ import { Montserrat, Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "./components/Navbar";
 import { CartProvider } from "./context/CartContext";
-
+import Footer from "./components/Footer"
 const montserrat = Montserrat({
   subsets: ["latin"],
   variable: "--font-headline",
@@ -25,6 +25,7 @@ export default function RootLayout({ children }) {
         <CartProvider>
           <Navbar />
           {children}
+          <Footer />
         </CartProvider>
       </body>
     </html>

@@ -1,7 +1,21 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// ── ORDERS (admin) ─────────────────────────────────────────
+// ── IMAGE UPLOAD ───────────────────────────────────────────
+export async function uploadImage(file, token) {
+  const formData = new FormData();
+  formData.append("image", file);
 
+  const res = await fetch(`${API_URL}/api/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  if (!res.ok) throw new Error("Failed to upload image");
+  return res.json(); // { url: "https://res.cloudinary.com/..." }
+}
+
+// ── ORDERS (admin) ─────────────────────────────────────────
 export async function getAllOrders(token) {
   const res = await fetch(`${API_URL}/api/orders`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -27,8 +41,6 @@ export async function updateOrderStatus(id, status, token) {
 }
 
 // ── MENU (admin) ────────────────────────────────────────────
-
-// Returns ALL items, including unavailable ones — for management
 export async function getAllMenuItemsAdmin(token) {
   const res = await fetch(`${API_URL}/api/menu/admin/all`, {
     headers: { Authorization: `Bearer ${token}` },
