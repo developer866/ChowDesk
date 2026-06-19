@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import { CartProvider } from "./context/CartContext";
 import Footer from "./components/Footer"
 import Script from "next/script";
+
 const montserrat = Montserrat({
   subsets: ["latin"],
   variable: "--font-headline",
@@ -17,6 +18,9 @@ const inter = Inter({
 export const metadata = {
   title: "ChowDesk — Order Food Online",
   description: "Fresh meals, refreshing drinks, fast delivery.",
+  verification: {
+    google: "UT_UlgydbBFwClgOeAF80OuSDpc94x1aNHORe_en094",
+  },
 };
 
 export default function RootLayout({ children }) {
