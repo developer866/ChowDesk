@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "./components/Navbar";
 import { CartProvider } from "./context/CartContext";
 import Footer from "./components/Footer"
+import Script from "next/script";
 const montserrat = Montserrat({
   subsets: ["latin"],
   variable: "--font-headline",
@@ -21,6 +22,20 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-4DRXWQ57S1"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-4DRXWQ57S1');
+          `}
+        </Script>
+      </head>
       <body className={`${montserrat.variable} ${inter.variable} antialiased`}>
         <CartProvider>
           <Navbar />
