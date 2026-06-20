@@ -15,14 +15,37 @@ const inter = Inter({
   variable: "--font-body",
 });
 
-export const metadata = {
-  title: "ChowDesk — Order Food Online",
-  description: "Fresh meals, refreshing drinks, fast delivery.",
-  verification: {
-    google: "UT_UlgydbBFwClgOeAF80OuSDpc94x1aNHORe_en094",
-  },
-};
 
+export const metadata = {
+  metadataBase: new URL('https://chow-desk.vercel.app'),
+  title: {
+    default: 'ChowDesk – Order Food Online | Fresh, Fast Delivery in Lagos',
+    template: '%s | ChowDesk',
+  },
+  description: 'Order fresh meals and drinks online with ChowDesk. Browse Starters, Mains, Drinks & Desserts, then order via WhatsApp — 30min delivery in Lekki, Lagos.',
+  openGraph: {
+    title: 'ChowDesk – Order Food Online',
+    description: 'Fresh meals, refreshing drinks, fast delivery — order via WhatsApp in seconds.',
+    url: 'https://chow-desk.vercel.app',
+    siteName: 'ChowDesk',
+    images: [
+      {
+        url: 'https://chow-desk.vercel.app/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'ChowDesk – Order Food Online',
+      },
+    ],
+    locale: 'en_NG',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ChowDesk – Order Food Online',
+    description: 'Fresh meals, refreshing drinks, fast delivery — order via WhatsApp in seconds.',
+    images: ['https://chow-desk.vercel.app/og-image.jpg'],
+  },
+}
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
