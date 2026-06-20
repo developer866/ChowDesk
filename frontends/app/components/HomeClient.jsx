@@ -101,7 +101,7 @@ export default function HomePage() {
             Explore Our Categories
           </h2>
           <p className="font-(family-name:--font-body) text-gray-500 text-sm sm:text-base">
-            From hearty mains to refreshing drinks — find exactly what you're
+            From hearty mains to refreshing drinks — find exactly what youre
             craving.
           </p>
         </div>
@@ -237,7 +237,7 @@ export default function HomePage() {
 
           <div className="relative z-10">
             <h2 className="font-(family-name:--font-headline) text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-3">
-              Hungry? Let's Fix That.
+              Hungry? Lets Fix That.
             </h2>
             <p className="font-(family-name:--font-body) text-white/90 text-sm sm:text-base mb-8 max-w-md mx-auto">
               Browse our menu and place your order in seconds — delivered hot
